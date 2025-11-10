@@ -36,7 +36,7 @@
 		function ImageGenerator() {
 		  const [image, setImage] = useState(null);
 		  const [style, setStyle] = useState('logo-only');
-		  const [logo, setLogo] = useState('SPN');
+		  const [logo, setLogo] = useState('SPN White');
 		  const [text, setText] = useState('');
 		  const [textColor, setTextColor] = useState('white');
 		  const [fontSize, setFontSize] = useState(72);
@@ -45,26 +45,12 @@
 		  const fileInputRef = useRef(null);
 		  const logoImages = useRef({});
 		
-		  // Logo SVGs
+		  // Logo file paths
 		  const logos = {
-			SPN: `<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-			  <circle cx="100" cy="100" r="90" fill="white" stroke="black" stroke-width="4"/>
-			  <text x="100" y="120" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="black">SPN</text>
-			</svg>`,
-			Flatwater: `<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-			  <rect width="200" height="200" fill="white" rx="10"/>
-			  <path d="M40 100 Q100 60 160 100" stroke="#0066cc" stroke-width="8" fill="none"/>
-			  <path d="M40 120 Q100 80 160 120" stroke="#0066cc" stroke-width="8" fill="none"/>
-			  <text x="100" y="160" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#0066cc">FLATWATER</text>
-			</svg>`,
-			Documenters: `<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-			  <rect width="200" height="200" fill="#1a1a1a" rx="10"/>
-			  <rect x="60" y="40" width="80" height="100" fill="white" rx="4"/>
-			  <line x1="70" y1="60" x2="130" y2="60" stroke="#1a1a1a" stroke-width="3"/>
-			  <line x1="70" y1="80" x2="130" y2="80" stroke="#1a1a1a" stroke-width="3"/>
-			  <line x1="70" y1="100" x2="130" y2="100" stroke="#1a1a1a" stroke-width="3"/>
-			  <text x="100" y="170" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="white">DOCUMENTERS</text>
-			</svg>`
+			'SPN White': 'logos/spn-logo-white-clear.svg',
+			'SPN Orange': 'logos/spn-logo-orange-clear.svg',
+			'Documenters Round Yellow': 'logos/documenter-round-yellow.png',
+			'Documenters Black': 'logos/documenters-logo-black-only.png'
 		  };
 		
 		  const wrapText = (ctx, text, maxWidth) => {
@@ -202,14 +188,16 @@
 			const loadLogos = async () => {
 			  for (const key of Object.keys(logos)) {
 				const img = new Image();
-				const blob = new Blob([logos[key]], { type: 'image/svg+xml' });
-				const url = URL.createObjectURL(blob);
 				await new Promise((resolve) => {
 				  img.onload = () => {
 					logoImages.current[key] = img;
 					resolve();
 				  };
-				  img.src = url;
+				  img.onerror = () => {
+					console.error(`Failed to load logo: ${logos[key]}`);
+					resolve(); // Continue loading other logos even if one fails
+				  };
+				  img.src = logos[key];
 				});
 			  }
 			  drawImage();
@@ -325,9 +313,10 @@
 						  onChange={(e) => setLogo(e.target.value)}
 						  className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 						>
-						  <option value="SPN">SPN</option>
-						  <option value="Flatwater">Flatwater</option>
-						  <option value="Documenters">Documenters</option>
+						  <option value="SPN White">SPN White</option>
+						  <option value="SPN Orange">SPN Orange</option>
+						  <option value="Documenters Round Yellow">Documenters Round Yellow</option>
+						  <option value="Documenters Black">Documenters Black</option>
 						</select>
 					  </div>
 		
