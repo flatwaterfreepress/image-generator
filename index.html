@@ -40,6 +40,7 @@
 		  const [text, setText] = useState('');
 		  const [textColor, setTextColor] = useState('white');
 		  const [fontSize, setFontSize] = useState(72);
+		  const [showWavyOverlay, setShowWavyOverlay] = useState(false);
 		  const canvasRef = useRef(null);
 		  const fileInputRef = useRef(null);
 		  const logoImages = useRef({});
@@ -85,6 +86,33 @@
 			return lines;
 		  };
 		
+		  const drawWavyOverlay = (ctx, canvas) => {
+			ctx.save();
+			ctx.strokeStyle = 'white';
+			ctx.lineWidth = 1;
+			ctx.globalAlpha = 0.2; // 20% opacity (80% transparent)
+			
+			const lineSpacing = 30; // Vertical spacing between lines
+			const waveAmplitude = 4; // Height of the wave
+			const waveFrequency = 0.16; // How many waves across the width
+			
+			// Draw wavy lines from top to bottom
+			for (let y = 0; y < canvas.height; y += lineSpacing) {
+			  ctx.beginPath();
+			  for (let x = 0; x <= canvas.width; x += 2) {
+				const waveY = y + Math.sin(x * waveFrequency) * waveAmplitude;
+				if (x === 0) {
+				  ctx.moveTo(x, waveY);
+				} else {
+				  ctx.lineTo(x, waveY);
+				}
+			  }
+			  ctx.stroke();
+			}
+			
+			ctx.restore();
+		  };
+		
 		  const drawImage = () => {
 			const canvas = canvasRef.current;
 			if (!canvas) return;
@@ -118,6 +146,11 @@
 				data[i + 2] = gray;
 			  }
 			  ctx.putImageData(imageData, 0, 0);
+			}
+		
+			// Draw wavy overlay (above image, below logo)
+			if (showWavyOverlay) {
+			  drawWavyOverlay(ctx, canvas);
 			}
 		
 			const logoImg = logoImages.current[logo];
@@ -186,7 +219,7 @@
 		
 		  useEffect(() => {
 			drawImage();
-		  }, [image, style, logo, text, textColor, fontSize]);
+		  }, [image, style, logo, text, textColor, fontSize, showWavyOverlay]);
 		
 		  const handleImageUpload = (e) => {
 			const file = e.target.files[0];
@@ -296,6 +329,25 @@
 						  <option value="Flatwater">Flatwater</option>
 						  <option value="Documenters">Documenters</option>
 						</select>
+					  </div>
+		
+					  <div className="flex items-center justify-between">
+						<label className="block text-sm font-medium text-gray-300">
+						  Wavy Line Overlay
+						</label>
+						<button
+						  type="button"
+						  onClick={() => setShowWavyOverlay(!showWavyOverlay)}
+						  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+							showWavyOverlay ? 'bg-blue-500' : 'bg-gray-600'
+						  }`}
+						>
+						  <span
+							className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+							  showWavyOverlay ? 'translate-x-6' : 'translate-x-1'
+							}`}
+						  />
+						</button>
 					  </div>
 		
 					  {style === 'with-text' && (
