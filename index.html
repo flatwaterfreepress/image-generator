@@ -109,7 +109,7 @@
 		  const drawWavyOverlay = (ctx, canvas) => {
 			ctx.save();
 			ctx.strokeStyle = 'white';
-			ctx.lineWidth = 1;
+			ctx.lineWidth = 2;
 			ctx.globalAlpha = 0.35;
 			
 			const lineSpacing = 30;
@@ -181,10 +181,10 @@
 				  );
 				} else if (style === 'with-text') {
 				  const logoSize = 200;
-				  const padding = 40;
+				  const padding = 80;
 				  ctx.drawImage(
 					logoImg,
-					canvas.width - logoSize - padding,
+					padding,
 					canvas.height - logoSize - padding,
 					logoSize,
 					logoSize
@@ -193,16 +193,17 @@
 			  }
 			
 			  if (style === 'with-text' && text) {
+				const padding = 80;
 				ctx.fillStyle = textColor;
 				ctx.globalAlpha = 0.85;
 				ctx.font = `bold ${fontSize}px Impact, sans-serif`;
 				ctx.textAlign = 'left';
 				ctx.textBaseline = 'top';
 		
-				const lines = wrapText(ctx, text.toUpperCase(), canvas.width - 80);
+				const lines = wrapText(ctx, text.toUpperCase(), canvas.width - padding * 2);
 				lines.forEach((line, i) => {
-				  const y = 40 + (i * fontSize * 1.2);
-				  ctx.fillText(line, 40, y);
+				  const y = padding + (i * fontSize * 1.2);
+				  ctx.fillText(line, padding, y);
 				});
 		
 				ctx.globalAlpha = 1.0;
@@ -305,7 +306,12 @@
 					<button
 					  type="button"
 					  onClick={downloadImage}
-					  className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 transition-colors flex items-center justify-center gap-2"
+					  disabled={imageVersion === 0}
+					  className={`w-full mt-4 font-semibold py-3 px-6 transition-colors flex items-center justify-center gap-2 ${
+						imageVersion === 0
+						  ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
+						  : 'bg-blue-600 hover:bg-blue-700 text-white'
+					  }`}
 					>
 					  <DownloadIcon className="w-5 h-5" />
 					  Download Image (1920x1080 WebP)
