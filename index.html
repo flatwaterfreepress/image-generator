@@ -3,13 +3,13 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Image Generator</title>
+	<title>Documenters Image Generator</title>
 	<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 	<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 	<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 	<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-stone-100">
 	<div id="root"></div>
 	<script type="text/babel">
 		const { useState, useRef, useEffect } = React;
@@ -33,22 +33,56 @@
 		  </svg>
 		);
 		
+		class ErrorBoundary extends React.Component {
+		  constructor(props) {
+			super(props);
+			this.state = { hasError: false, error: null };
+		  }
+		
+		  static getDerivedStateFromError(error) {
+			return { hasError: true, error };
+		  }
+		
+		  render() {
+			if (this.state.hasError) {
+			  return (
+				<div className="min-h-screen bg-stone-100 flex items-center justify-center p-8">
+				  <div className="bg-white border border-stone-200 p-8 max-w-md text-center shadow-sm">
+					<h1 className="text-xl font-semibold text-stone-800 mb-2">Something went wrong</h1>
+					<p className="text-stone-500 mb-4">Try refreshing the page or using a smaller image file.</p>
+					<button
+					  type="button"
+					  onClick={() => window.location.reload()}
+					  className="bg-stone-700 hover:bg-stone-800 text-white font-medium py-2 px-4"
+					>
+					  Refresh Page
+					</button>
+				  </div>
+				</div>
+			  );
+			}
+			return this.props.children;
+		  }
+		}
+		
 		function ImageGenerator() {
-		  const [image, setImage] = useState(null);
+		  const [imageVersion, setImageVersion] = useState(0);
 		  const [style, setStyle] = useState('logo-only');
-		  const [logo, setLogo] = useState('SPN White');
+		  const [logo, setLogo] = useState('Documenters Round Yellow');
 		  const [text, setText] = useState('');
 		  const [textColor, setTextColor] = useState('white');
 		  const [fontSize, setFontSize] = useState(72);
 		  const [showWavyOverlay, setShowWavyOverlay] = useState(false);
+		  const [photoColor, setPhotoColor] = useState('grayscale');
+		  const [contrast, setContrast] = useState(100);
+		  const [saturation, setSaturation] = useState(100);
+		  const [uploadError, setUploadError] = useState(null);
 		  const canvasRef = useRef(null);
 		  const fileInputRef = useRef(null);
+		  const imageRef = useRef(null);
 		  const logoImages = useRef({});
 		
-		  // Logo file paths
 		  const logos = {
-			'SPN White': 'logos/spn-logo-white-clear.svg',
-			'SPN Orange': 'logos/spn-logo-orange-clear.svg',
 			'Documenters Round Yellow': 'logos/documenter-round-yellow.png',
 			'Documenters Black': 'logos/documenters-logo-black-only.png'
 		  };
@@ -76,10 +110,10 @@
 			ctx.save();
 			ctx.strokeStyle = 'white';
 			ctx.lineWidth = 1;
-			ctx.globalAlpha = 0.2; // 20% opacity (80% transparent)
+			ctx.globalAlpha = 0.35;
 			
-			const lineSpacing = 30; // Vertical spacing between lines
-			const waveAmplitude = 4; // Height of the wave
+			const lineSpacing = 30;
+			const waveAmplitude = 5;
 			const waveFrequency = 0.16; // How many waves across the width
 			
 			// Draw wavy lines from top to bottom
@@ -103,83 +137,79 @@
 			const canvas = canvasRef.current;
 			if (!canvas) return;
 		
-			const ctx = canvas.getContext('2d');
-			canvas.width = 1920;
-			canvas.height = 1080;
+			try {
+			  const ctx = canvas.getContext('2d');
+			  canvas.width = 1920;
+			  canvas.height = 1080;
 		
-			// Fill background
-			ctx.fillStyle = '#1f2937';
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			  ctx.fillStyle = '#1f2937';
+			  ctx.fillRect(0, 0, canvas.width, canvas.height);
 		
-			// Draw and convert image to grayscale
-			if (image) {
-			  const scale = Math.max(
-				canvas.width / image.width,
-				canvas.height / image.height
-			  );
-			  const x = (canvas.width / 2) - (image.width / 2) * scale;
-			  const y = (canvas.height / 2) - (image.height / 2) * scale;
-			  
-			  ctx.drawImage(image, x, y, image.width * scale, image.height * scale);
-			  
-			  // Convert to grayscale
-			  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-			  const data = imageData.data;
-			  for (let i = 0; i < data.length; i += 4) {
-				const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-				data[i] = gray;
-				data[i + 1] = gray;
-				data[i + 2] = gray;
-			  }
-			  ctx.putImageData(imageData, 0, 0);
-			}
-		
-			// Draw wavy overlay (above image, below logo)
-			if (showWavyOverlay) {
-			  drawWavyOverlay(ctx, canvas);
-			}
-		
-			const logoImg = logoImages.current[logo];
-			if (logoImg) {
-			  if (style === 'logo-only') {
-				// Center logo
-				const logoSize = 300;
-				ctx.drawImage(
-				  logoImg,
-				  (canvas.width - logoSize) / 2,
-				  (canvas.height - logoSize) / 2,
-				  logoSize,
-				  logoSize
+			  const image = imageRef.current;
+			  if (image && image.width > 0 && image.height > 0) {
+				const scale = Math.max(
+				  canvas.width / image.width,
+				  canvas.height / image.height
 				);
-			  } else if (style === 'with-text') {
-				// Logo in bottom right
-				const logoSize = 200;
-				const padding = 40;
-				ctx.drawImage(
-				  logoImg,
-				  canvas.width - logoSize - padding,
-				  canvas.height - logoSize - padding,
-				  logoSize,
-				  logoSize
-				);
+				const x = (canvas.width / 2) - (image.width / 2) * scale;
+				const y = (canvas.height / 2) - (image.height / 2) * scale;
+		
+				ctx.save();
+				if (photoColor === 'grayscale') {
+				  ctx.filter = `grayscale(100%) contrast(${contrast}%)`;
+				} else {
+				  ctx.filter = `saturate(${saturation}%)`;
+				}
+				ctx.drawImage(image, x, y, image.width * scale, image.height * scale);
+				ctx.restore();
 			  }
-			}
+		
+			  if (showWavyOverlay) {
+				drawWavyOverlay(ctx, canvas);
+			  }
+		
+			  const logoImg = logoImages.current[logo];
+			  if (logoImg) {
+				if (style === 'logo-only') {
+				  const logoSize = 300;
+				  ctx.drawImage(
+					logoImg,
+					(canvas.width - logoSize) / 2,
+					(canvas.height - logoSize) / 2,
+					logoSize,
+					logoSize
+				  );
+				} else if (style === 'with-text') {
+				  const logoSize = 200;
+				  const padding = 40;
+				  ctx.drawImage(
+					logoImg,
+					canvas.width - logoSize - padding,
+					canvas.height - logoSize - padding,
+					logoSize,
+					logoSize
+				  );
+				}
+			  }
 			
-			// Draw text (top left, semi-transparent) for with-text style
-			if (style === 'with-text' && text) {
-			  ctx.fillStyle = textColor;
-			  ctx.globalAlpha = 0.85;
-			  ctx.font = `bold ${fontSize}px Impact, sans-serif`;
-			  ctx.textAlign = 'left';
-			  ctx.textBaseline = 'top';
-	
-			  const lines = wrapText(ctx, text.toUpperCase(), canvas.width - 80);
-			  lines.forEach((line, i) => {
-				const y = 40 + (i * fontSize * 1.2);
-				ctx.fillText(line, 40, y);
-			  });
-			  
-			  ctx.globalAlpha = 1.0;
+			  if (style === 'with-text' && text) {
+				ctx.fillStyle = textColor;
+				ctx.globalAlpha = 0.85;
+				ctx.font = `bold ${fontSize}px Impact, sans-serif`;
+				ctx.textAlign = 'left';
+				ctx.textBaseline = 'top';
+		
+				const lines = wrapText(ctx, text.toUpperCase(), canvas.width - 80);
+				lines.forEach((line, i) => {
+				  const y = 40 + (i * fontSize * 1.2);
+				  ctx.fillText(line, 40, y);
+				});
+		
+				ctx.globalAlpha = 1.0;
+			  }
+			} catch (err) {
+			  console.error('Failed to draw image:', err);
+			  setUploadError('Failed to render image. Try a smaller file or a different format (JPG/PNG).');
 			}
 		  };
 		
@@ -207,21 +237,39 @@
 		
 		  useEffect(() => {
 			drawImage();
-		  }, [image, style, logo, text, textColor, fontSize, showWavyOverlay]);
+		  }, [imageVersion, style, logo, text, textColor, fontSize, showWavyOverlay, photoColor, contrast, saturation]);
 		
 		  const handleImageUpload = (e) => {
 			const file = e.target.files[0];
-			if (file) {
-			  const reader = new FileReader();
-			  reader.onload = (event) => {
-				const img = new Image();
-				img.onload = () => {
-				  setImage(img);
-				};
-				img.src = event.target.result;
-			  };
-			  reader.readAsDataURL(file);
+			if (!file) return;
+		
+			setUploadError(null);
+		
+			if (file.size > 25 * 1024 * 1024) {
+			  setUploadError('Image must be smaller than 25 MB.');
+			  e.target.value = '';
+			  return;
 			}
+		
+			const reader = new FileReader();
+			reader.onerror = () => {
+			  setUploadError('Failed to read image file.');
+			  e.target.value = '';
+			};
+			reader.onload = (event) => {
+			  const img = new Image();
+			  img.onerror = () => {
+				setUploadError('Could not load image. Try JPG or PNG format.');
+				e.target.value = '';
+			  };
+			  img.onload = () => {
+				imageRef.current = img;
+				setImageVersion((v) => v + 1);
+				e.target.value = '';
+			  };
+			  img.src = event.target.result;
+			};
+			reader.readAsDataURL(file);
 		  };
 		
 		  const downloadImage = () => {
@@ -233,21 +281,21 @@
 		  };
 		
 		  return (
-			<div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
+			<div className="min-h-screen bg-stone-100 p-8">
 			  <div className="max-w-7xl mx-auto">
 				<div className="text-center mb-8">
-				  <h1 className="text-5xl font-bold text-white mb-2">Image Generator</h1>
-				  <p className="text-gray-400">Create branded images with custom styles</p>
+				  <h1 className="text-5xl font-bold text-stone-800 mb-2">Documenters Image Generator</h1>
+				  <p className="text-stone-500">Create branded Documenters images with custom styles</p>
 				</div>
 		
 				<div className="grid lg:grid-cols-2 gap-8">
 				  {/* Canvas Preview */}
-				  <div className="bg-gray-800 rounded-xl p-6 shadow-2xl">
-					<h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+				  <div className="bg-white border border-stone-200 p-6 shadow-sm">
+					<h2 className="text-xl font-semibold text-stone-800 mb-4 flex items-center gap-2">
 					  <ImageIcon className="w-5 h-5" />
 					  Preview
 					</h2>
-					<div className="bg-gray-900 rounded-lg overflow-hidden">
+					<div className="bg-stone-200 overflow-hidden">
 					  <canvas
 						ref={canvasRef}
 						className="w-full h-auto"
@@ -255,8 +303,9 @@
 					  />
 					</div>
 					<button
+					  type="button"
 					  onClick={downloadImage}
-					  className="w-full mt-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg"
+					  className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 transition-colors flex items-center justify-center gap-2"
 					>
 					  <DownloadIcon className="w-5 h-5" />
 					  Download Image (1920x1080 WebP)
@@ -266,8 +315,8 @@
 				  {/* Controls */}
 				  <div className="space-y-6">
 					{/* Image Upload */}
-					<div className="bg-gray-800 rounded-xl p-6 shadow-xl">
-					  <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+					<div className="bg-white border border-stone-200 p-6 shadow-sm">
+					  <h2 className="text-xl font-semibold text-stone-800 mb-4 flex items-center gap-2">
 						<UploadIcon className="w-5 h-5" />
 						Upload Image
 					  </h2>
@@ -279,56 +328,104 @@
 						className="hidden"
 					  />
 					  <button
+						type="button"
 						onClick={() => fileInputRef.current.click()}
-						className="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-all border-2 border-dashed border-gray-600 hover:border-gray-500"
+						className="w-full bg-stone-50 hover:bg-stone-100 text-stone-700 font-medium py-3 px-6 transition-colors border-2 border-dashed border-stone-300 hover:border-stone-400"
 					  >
 						Choose Image
 					  </button>
+					  {uploadError && (
+						<p className="mt-3 text-sm text-red-600">{uploadError}</p>
+					  )}
 					</div>
 		
 					{/* Style Selection */}
-					<div className="bg-gray-800 rounded-xl p-6 shadow-xl space-y-4">
-					  <h2 className="text-xl font-semibold text-white mb-4">Style Options</h2>
+					<div className="bg-white border border-stone-200 p-6 shadow-sm space-y-4">
+					  <h2 className="text-xl font-semibold text-stone-800 mb-4">Style Options</h2>
 					  
 					  <div>
-						<label className="block text-sm font-medium text-gray-300 mb-2">
+						<label className="block text-sm font-medium text-stone-600 mb-2">
 						  Style
 						</label>
 						<select
 						  value={style}
 						  onChange={(e) => setStyle(e.target.value)}
-						  className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						  className="w-full bg-stone-50 text-stone-800 border border-stone-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
 						>
-						  <option value="logo-only">Grayscale with Centered Logo</option>
-						  <option value="with-text">Grayscale with Text & Logo</option>
+						  <option value="logo-only">Centered Logo</option>
+						  <option value="with-text">Text & Logo</option>
 						</select>
 					  </div>
 		
 					  <div>
-						<label className="block text-sm font-medium text-gray-300 mb-2">
+						<label className="block text-sm font-medium text-stone-600 mb-2">
 						  Logo
 						</label>
 						<select
 						  value={logo}
 						  onChange={(e) => setLogo(e.target.value)}
-						  className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						  className="w-full bg-stone-50 text-stone-800 border border-stone-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
 						>
-						  <option value="SPN White">SPN White</option>
-						  <option value="SPN Orange">SPN Orange</option>
 						  <option value="Documenters Round Yellow">Documenters Round Yellow</option>
 						  <option value="Documenters Black">Documenters Black</option>
 						</select>
 					  </div>
 		
+					  <div>
+						<label className="block text-sm font-medium text-stone-600 mb-2">
+						  Photo Color
+						</label>
+						<select
+						  value={photoColor}
+						  onChange={(e) => setPhotoColor(e.target.value)}
+						  className="w-full bg-stone-50 text-stone-800 border border-stone-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
+						>
+						  <option value="grayscale">Grayscale</option>
+						  <option value="color">Color</option>
+						</select>
+					  </div>
+		
+					  {photoColor === 'grayscale' && (
+						<div>
+						  <label className="block text-sm font-medium text-stone-600 mb-2">
+							Contrast: {contrast}%
+						  </label>
+						  <input
+							type="range"
+							min="50"
+							max="200"
+							value={contrast}
+							onChange={(e) => setContrast(Number(e.target.value))}
+							className="w-full h-2 bg-stone-200 appearance-none cursor-pointer accent-stone-600"
+						  />
+						</div>
+					  )}
+		
+					  {photoColor === 'color' && (
+						<div>
+						  <label className="block text-sm font-medium text-stone-600 mb-2">
+							Saturation: {saturation}%
+						  </label>
+						  <input
+							type="range"
+							min="0"
+							max="200"
+							value={saturation}
+							onChange={(e) => setSaturation(Number(e.target.value))}
+							className="w-full h-2 bg-stone-200 appearance-none cursor-pointer accent-stone-600"
+						  />
+						</div>
+					  )}
+		
 					  <div className="flex items-center justify-between">
-						<label className="block text-sm font-medium text-gray-300">
+						<label className="block text-sm font-medium text-stone-600">
 						  Wavy Line Overlay
 						</label>
 						<button
 						  type="button"
 						  onClick={() => setShowWavyOverlay(!showWavyOverlay)}
-						  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-							showWavyOverlay ? 'bg-blue-500' : 'bg-gray-600'
+						  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2 focus:ring-offset-white ${
+							showWavyOverlay ? 'bg-green-600' : 'bg-stone-300'
 						  }`}
 						>
 						  <span
@@ -342,7 +439,7 @@
 					  {style === 'with-text' && (
 						<>
 						  <div>
-							<label className="block text-sm font-medium text-gray-300 mb-2">
+							<label className="block text-sm font-medium text-stone-600 mb-2">
 							  Text
 							</label>
 							<textarea
@@ -350,18 +447,18 @@
 							  onChange={(e) => setText(e.target.value)}
 							  placeholder="Enter your text"
 							  rows="3"
-							  className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+							  className="w-full bg-stone-50 text-stone-800 border border-stone-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent resize-none placeholder:text-stone-400"
 							/>
 						  </div>
 		
 						  <div>
-							<label className="block text-sm font-medium text-gray-300 mb-2">
+							<label className="block text-sm font-medium text-stone-600 mb-2">
 							  Text Color
 							</label>
 							<select
 							  value={textColor}
 							  onChange={(e) => setTextColor(e.target.value)}
-							  className="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+							  className="w-full bg-stone-50 text-stone-800 border border-stone-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent"
 							>
 							  <option value="white">White</option>
 							  <option value="black">Black</option>
@@ -369,7 +466,7 @@
 						  </div>
 		
 						  <div>
-							<label className="block text-sm font-medium text-gray-300 mb-2">
+							<label className="block text-sm font-medium text-stone-600 mb-2">
 							  Font Size: {fontSize}px
 							</label>
 							<input
@@ -378,23 +475,13 @@
 							  max="150"
 							  value={fontSize}
 							  onChange={(e) => setFontSize(Number(e.target.value))}
-							  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+							  className="w-full h-2 bg-stone-200 appearance-none cursor-pointer accent-stone-600"
 							/>
 						  </div>
 						</>
 					  )}
 					</div>
 		
-					{/* Info */}
-					<div className="bg-gray-800 rounded-xl p-6 shadow-xl">
-					  <h3 className="text-sm font-semibold text-gray-300 mb-2">Features:</h3>
-					  <ul className="text-sm text-gray-400 space-y-1">
-						<li>• Output size: 1920x1080 pixels</li>
-						<li>• Images converted to grayscale</li>
-						<li>• Logo placement varies by style</li>
-						<li>• Text at 85% opacity (with-text style)</li>
-					  </ul>
-					</div>
 				  </div>
 				</div>
 			  </div>
@@ -402,9 +489,12 @@
 		  );
 		}
 		
-		// Render the component
 		const root = ReactDOM.createRoot(document.getElementById('root'));
-		root.render(<ImageGenerator />);
+		root.render(
+		  <ErrorBoundary>
+			<ImageGenerator />
+		  </ErrorBoundary>
+		);
 	</script>
 </body>
 </html>
